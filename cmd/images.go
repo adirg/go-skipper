@@ -17,6 +17,9 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"log"
+	"path/filepath"
+	"strings"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
@@ -30,33 +33,36 @@ var imagesCmd = &cobra.Command{
 
 	Run: func(cmd *cobra.Command, args []string) {
 		// TODO: Work your own magic here
-		cli, err := client.NewEnvClient()
+		files, err := filepath.Glob("Dockerfile.*")
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 
-		images, err := cli.ImageList(context.Background(), types.ImageListOptions{})
-		if err != nil {
-			panic(err)
+		images := make([]string, len(files))
+		for i, file := range files {
+			file_parts := strings.SplitN(file, ".", 2)
+			images[i] = file_parts[1]
 		}
 
 		for _, image := range images {
-			fmt.Println(image.RepoTags)
+			fmt.Println("Found potential image:", image)
+			cli, err := client.NewEnvClient()
+			if err != nil {
+				panic(err)
+			}
+
+			docker_images, err := cli.ImageList(context.Background(), types.ImageListOptions{})
+			if err != nil {
+				panic(err)
+			}
+
+			for _, docker_image := range docker_images {
+				fmt.Println("Found image:", docker_image.ID)
+			}
 		}
 	},
 }
 
 func init() {
 	RootCmd.AddCommand(imagesCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// imagesCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// imagesCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
 }
