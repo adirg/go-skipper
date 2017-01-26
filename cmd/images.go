@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
 	"github.com/spf13/cobra"
 )
@@ -44,20 +45,22 @@ var imagesCmd = &cobra.Command{
 			images[i] = file_parts[1]
 		}
 
-		for _, image := range images {
-			fmt.Println("Found potential image:", image)
-			cli, err := client.NewEnvClient()
-			if err != nil {
-				panic(err)
-			}
+		cli, err := client.NewEnvClient()
+		if err != nil {
+			panic(err)
+		}
 
-			docker_images, err := cli.ImageList(context.Background(), types.ImageListOptions{})
+		//var images_summary []types.ImageSummary
+		for _, image := range images {
+			filters := filters.NewArgs()
+			filters.Add("reference", image)
+			docker_images, err := cli.ImageList(context.Background(), types.ImageListOptions{Filters: filters})
 			if err != nil {
 				panic(err)
 			}
 
 			for _, docker_image := range docker_images {
-				fmt.Println("Found image:", docker_image.ID)
+				fmt.Println(docker_image.RepoTags)
 			}
 		}
 	},
