@@ -16,13 +16,14 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/cli/command/formatter"
 	"github.com/docker/docker/client"
 	"github.com/spf13/cobra"
 )
@@ -50,7 +51,7 @@ var imagesCmd = &cobra.Command{
 			panic(err)
 		}
 
-		//var images_summary []types.ImageSummary
+		var summary []types.ImageSummary
 		for _, image := range images {
 			filters := filters.NewArgs()
 			filters.Add("reference", image)
@@ -60,9 +61,20 @@ var imagesCmd = &cobra.Command{
 			}
 
 			for _, docker_image := range docker_images {
-				fmt.Println(docker_image.RepoTags)
+				summary = append(summary, docker_image)
 			}
 		}
+
+		format := formatter.TableFormatKey
+		imageCtx := formatter.ImageContext{
+			Context: formatter.Context{
+				Output: os.Stdout,
+				Format: formatter.NewImageFormat(format, false, false),
+				Trunc:  true,
+			},
+		}
+
+		formatter.ImageWrite(imageCtx, summary)
 	},
 }
 
