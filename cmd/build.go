@@ -24,29 +24,47 @@ import (
 var buildCmd = &cobra.Command{
 	Use:   "build",
 	Short: "Build a container",
-	//Long: `A longer description that spans multiple lines and likely contains examples
-	//and usage of using your command. For example:
 
-	//Cobra is a CLI library for Go that empowers applications.
-	//This application is a tool to generate the needed files
-	//to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// TODO: Work your own magic here
-		fmt.Println("build called")
+		files, err := filepath.Glob("Dockerfile.*")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		images := make([]string, len(files))
+		for i, file := range files {
+			file_parts := strings.SplitN(file, ".", 2)
+			images[i] = file_parts[1]
+		}
+
+		cli, err := client.NewEnvClient()
+		if err != nil {
+			panic(err)
+		}
+
+		var buildOptions = types.ImageBuildOptions{}
+		for _, file := range files {
+			resp, err := cli.ImageBuild(context.Background(), nil, buildOptions)
+			if err != nil {
+				panic(err)
+			}
+
+		}
+
+		format := formatter.TableFormatKey
+		imageCtx := formatter.ImageContext{
+			Context: formatter.Context{
+				Output: os.Stdout,
+				Format: formatter.NewImageFormat(format, false, false),
+				Trunc:  true,
+			},
+		}
+
+		formatter.ImageWrite(imageCtx, summary)
 	},
 }
 
 func init() {
 	RootCmd.AddCommand(buildCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// buildCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// buildCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
 }
