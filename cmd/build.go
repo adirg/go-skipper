@@ -15,8 +15,13 @@
 package cmd
 
 import (
-	"fmt"
+	"context"
+	"log"
+	"path/filepath"
+	"strings"
 
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
 	"github.com/spf13/cobra"
 )
 
@@ -32,36 +37,26 @@ var buildCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
+		var buildOptions = types.ImageBuildOptions{
+			Remove: true,
+		}
 		images := make([]string, len(files))
+		cli, err := client.NewEnvClient()
 		for i, file := range files {
 			file_parts := strings.SplitN(file, ".", 2)
 			images[i] = file_parts[1]
-		}
 
-		cli, err := client.NewEnvClient()
-		if err != nil {
-			panic(err)
-		}
-
-		var buildOptions = types.ImageBuildOptions{}
-		for _, file := range files {
-			resp, err := cli.ImageBuild(context.Background(), nil, buildOptions)
+			buildOptions.Dockerfile = file
+			_, err := cli.ImageBuild(context.Background(), nil, buildOptions)
 			if err != nil {
 				panic(err)
 			}
 
 		}
 
-		format := formatter.TableFormatKey
-		imageCtx := formatter.ImageContext{
-			Context: formatter.Context{
-				Output: os.Stdout,
-				Format: formatter.NewImageFormat(format, false, false),
-				Trunc:  true,
-			},
+		if err != nil {
+			panic(err)
 		}
-
-		formatter.ImageWrite(imageCtx, summary)
 	},
 }
 
